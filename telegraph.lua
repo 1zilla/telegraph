@@ -274,7 +274,7 @@ function telegraph:toContent(Node)
   
   local function node(node_element)
     local content = {}
-     for index = 1, #node_element do
+    for index = 1, #node_element do
       local element = node_element[index]
       if type(element) == "string" then
         insert(content, element)
