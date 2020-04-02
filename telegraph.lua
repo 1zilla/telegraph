@@ -17,7 +17,7 @@ local sanitizer = require("web_sanitize.html").Sanitizer({strip_comments = true}
 local telegraph = {}
 telegraph.__index = telegraph
 
-local API = "https://api.telegra.ph/%s%s?%s"
+local API = "https://api.telegra.ph/%s%s"
 
 local function assert_path(method, path, position)
   assert(type(path) == "string", format("bad argument #%i to '%s' (string expected, got %s)", position or 1, method, type(path)))
@@ -34,10 +34,6 @@ end
 
 -- https://telegra.ph/api#NodeElement
 local allowed_tags = {a = true, aside = true, b = true, blockquote = true, br = false, code = true, em = true, figcaption = true, figure = true, h3 = true, h4 = true, hr = false, i = true, iframe = true, img = false, li = true, ol = true, p = true, pre = true, s = true, strong = true, u = true, ul = true, video = true}
-
-
-
-local function 
 
 setmetatable(telegraph, {
   __call = function(self, ...)
@@ -328,8 +324,8 @@ function telegraph:_request(method, path, access_token_required, params)
       params[key] = json
     end
   end
-  local url = format(API, method, path and "/" .. path or "", encode_query_string(params))
-  local response, status = request(url)
+  local url = format(API, method, path and "/" .. path or "")
+  local response, status = request(url, encode_query_string(params))
   if not response then
     return _fail, tostring(status)
   end
