@@ -15,7 +15,7 @@ local scanner = require("web_sanitize.query.scan_html")
 local sanitizer = require("web_sanitize.html").Sanitizer
 
 -- https://telegra.ph/api#NodeElement
-whitelist.tags = {a = {href = whitelist.tags.a.href}, aside = true, b = true, blockquote = true, br = true, code = true, em = true, figcaption = true, figure = true, h3 = true, h4 = true, hr = true, i = true, iframe = {src = whitelist.tags.img.src}, img = {src = whitelist.tags.img.src}, li = true, ol = true, p = true, pre = true, s = true, strong = true, u = true, ul = true, video = true}
+whitelist.tags = {a = {href = whitelist.tags.a.href}, aside = true, b = true, blockquote = true, br = true, code = true, em = true, figcaption = true, figure = true, h3 = true, h4 = true, hr = true, i = true, iframe = {src = whitelist.tags.img.src}, img = {src = whitelist.tags.img.src}, li = true, ol = true, p = true, pre = true, s = true, strong = true, u = true, ul = true, video = {src = whitelist.tags.img.src}}
 whitelist.self_closing = {br = true, hr = true, img = true}
 whitelist.add_attributes = {}
 
@@ -36,7 +36,6 @@ end
 local function assert_data(method, data, position)
   assert(type(data) == "table", format("bad argument #%i to '%s' (table expected, got %s)", position or 1, method, type(data)))
 end
-
 
 setmetatable(telegraph, {
   __call = function(self, ...)
