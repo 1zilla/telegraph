@@ -1,8 +1,7 @@
-local _fail = fail -- luacheck: ignore
-
 local format, lower, gsub = string.format, string.lower, string.gsub
-local ceil = math.ceil
 local insert, concat = table.insert, table.concat
+local ceil = math.ceil
+local _fail = fail -- luacheck: ignore
 
 local request = require("lapis.http").request
 local util = require("lapis.util")
@@ -10,7 +9,10 @@ local encode_query_string = util.encode_query_string
 local to_json = util.to_json
 local from_json = util.from_json
 
-local scanner -- luarocks install web_sanitize
+-- luarocks install web_sanitize
+--local whitelist = require("web_sanitize.whitelist"):clone()
+local scanner = require("web_sanitize.query.scan_html")
+local sanitizer = require("web_sanitize.html").Sanitizer({strip_comments = true})
 
 local telegraph = {}
 telegraph.__index = telegraph
@@ -32,6 +34,10 @@ end
 
 -- https://telegra.ph/api#NodeElement
 local allowed_tags = {a = true, aside = true, b = true, blockquote = true, br = false, code = true, em = true, figcaption = true, figure = true, h3 = true, h4 = true, hr = false, i = true, iframe = true, img = false, li = true, ol = true, p = true, pre = true, s = true, strong = true, u = true, ul = true, video = true}
+
+
+
+local function 
 
 setmetatable(telegraph, {
   __call = function(self, ...)
@@ -164,7 +170,7 @@ end
 function telegraph:PageList(data)
   assert_data("PageList", data)
   for index = 1, #data.pages do
-    if not getmetatable(data.pages) then
+    if not getmetatable(data.pages[index]) then
       data.pages[index] = self:Page(data.pages[index])
     end
   end
@@ -208,16 +214,13 @@ end
 
 -- https://telegra.ph/api#Content-format
 function telegraph:toNode(content)
-  if not scanner then
-    scanner = require("web_sanitize.query.scan_html")
-  end
   
-  content = gsub(content, "<!%-%-.-%-%->", "")
+  content = sanitizer(content)
   
   -- https://github.com/olueiro/lapis_layout/blob/f43a52cfc5cbf631b6d3595d7748a85074b3286f/lapis_layout.lua#L28
   local tree = {}
   scanner.scan_html(content, function(stack)
-  local current = tree
+    local current = tree
     for _, node in pairs(stack) do
       local num = node.num
       if current[num] then
