@@ -10,9 +10,14 @@ local to_json = util.to_json
 local from_json = util.from_json
 
 -- luarocks install web_sanitize
---local whitelist = require("web_sanitize.whitelist"):clone()
+local whitelist = require("web_sanitize.whitelist"):clone()
 local scanner = require("web_sanitize.query.scan_html")
-local sanitizer = require("web_sanitize.html").Sanitizer({strip_comments = true})
+local sanitizer = require("web_sanitize.html").Sanitizer
+
+-- https://telegra.ph/api#NodeElement
+whitelist.tags = {a = {href = whitelist.tags.a.href}, aside = true, b = true, blockquote = true, br = true, code = true, em = true, figcaption = true, figure = true, h3 = true, h4 = true, hr = true, i = true, iframe = {src = whitelist.tags.img.src}, img = {src = whitelist.tags.img.src}, li = true, ol = true, p = true, pre = true, s = true, strong = true, u = true, ul = true, video = true}
+whitelist.self_closing = {br = true, hr = true, img = true}
+whitelist.add_attributes = {}
 
 local telegraph = {}
 telegraph.__index = telegraph
@@ -32,8 +37,6 @@ local function assert_data(method, data, position)
   assert(type(data) == "table", format("bad argument #%i to '%s' (table expected, got %s)", position or 1, method, type(data)))
 end
 
--- https://telegra.ph/api#NodeElement
-local allowed_tags = {a = true, aside = true, b = true, blockquote = true, br = false, code = true, em = true, figcaption = true, figure = true, h3 = true, h4 = true, hr = false, i = true, iframe = true, img = false, li = true, ol = true, p = true, pre = true, s = true, strong = true, u = true, ul = true, video = true}
 
 setmetatable(telegraph, {
   __call = function(self, ...)
@@ -209,10 +212,8 @@ function telegraph:NodeElement(data)
 end
 
 -- https://telegra.ph/api#Content-format
-function telegraph:toNode(content)
-  
-  content = sanitizer(content)
-  
+function telegraph:toNode(content, strip_tags)
+  content = sanitizer({whitelist = whitelist, strip_comments = true, strip_tags = strip_tags})(content)
   -- https://github.com/olueiro/lapis_layout/blob/f43a52cfc5cbf631b6d3595d7748a85074b3286f/lapis_layout.lua#L28
   local tree = {}
   scanner.scan_html(content, function(stack)
@@ -225,16 +226,12 @@ function telegraph:toNode(content)
         if node.type == "text_node" then
           insert(current, node:inner_text())
         else
-          current[num] = {
-            tag = node.tag,
-            attr = node.attr
-          }
+          current[num] = {tag = node.tag, attr = node.attr}
           current = current[num]
         end
       end
     end
   end, {text_nodes = true})
-  
   local function children(node)
     local nodes = {}
     for index = 1, #node do
@@ -251,60 +248,44 @@ function telegraph:toNode(content)
         end
         insert(nodes, concat(text))
       elseif type(value) == "table" then
-        local tag = lower(value.tag)
-        if allowed_tags[tag] ~= nil then
-          local attrs
-          if value.attr then
-            -- https://telegra.ph/api#NodeElement
-            attrs = {href = value.attr.href, src = value.attr.src}
-          end
-          insert(nodes, {tag = tag, attrs = attrs, children = children(value)})
-        end
+        insert(nodes, {tag = lower(value.tag), attrs = value.attr and {href = value.attr.href, src = value.attr.src}, children = children(value)})
       end
     end
     return #nodes == 0 and nil or nodes
   end
-  
   return self:Node(children(tree) or {})
 end
 
 -- https://telegra.ph/api#Content-format
 function telegraph:toContent(Node)
-  
-  local function node(node_element)
+  local function node(Node)
     local content = {}
-    for index = 1, #node_element do
-      local element = node_element[index]
-      if type(element) == "string" then
-        insert(content, element)
-      elseif type(element) == "table" then
-        local tag = element.tag
+    for index = 1, #Node do
+      local NodeElement = Node[index]
+      if type(NodeElement) == "string" then
+        insert(content, NodeElement)
+      elseif type(NodeElement) == "table" then
+        local tag = NodeElement.tag
         local href = ""
         local src = ""
-        if element.attrs then
-          if element.attrs.href then
-            href = format(" href=%q", element.attrs.href)
+        if NodeElement.attrs then
+          if NodeElement.attrs.href then
+            href = format(" href=%q", NodeElement.attrs.href)
           end
-          if element.attrs.src then
-            src = format(" src=%q", element.attrs.src)
+          if NodeElement.attrs.src then
+            src = format(" src=%q", NodeElement.attrs.src)
           end
         end
-        if allowed_tags[tag] == true then
-          local children = ""
-          if element.children then
-            children = node(element.children)
-          end
-          insert(content, format("<%s%s%s>%s</%s>", tag, href, src, children, tag))
-        elseif allowed_tags[tag] == false then
-          insert(content, format("<%s%s%s />", tag, href, src))
+        local children = ""
+        if NodeElement.children then
+          children = node(NodeElement.children)
         end
+        insert(content, format("<%s%s%s>%s</%s>", tag, href, src, children, tag))
       end
     end
     return concat(content)
   end
-
-  return node(Node)
-
+  return sanitizer({whitelist = whitelist, strip_comments = true})(node(Node))
 end
 
 function telegraph:_request(method, path, access_token_required, params)
