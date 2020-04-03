@@ -145,7 +145,7 @@ function telegraph:getPageList(params, get_all)
   assert_params("getPageList", params)
   if get_all then
     local page_count = self:getAccountInfo({}, true).page_count
-    if page_count > 0 then
+    if page_count and page_count > 0 then
       local limit = 200
       local total = ceil(limit / tonumber(page_count))
       local Pages
