@@ -168,7 +168,7 @@ end
 function telegraph:PageList(data)
   assert_data("PageList", data)
   for index = 1, #data.pages do
-    if not getmetatable(data.pages[index]) then
+    if self:type(data.pages[index]) ~= "Page" then
       data.pages[index] = self:Page(data.pages[index])
     end
   end
@@ -259,32 +259,45 @@ end
 function telegraph:toContent(Node)
   local function node(Node)
     local content = {}
-    for index = 1, #Node do
-      local NodeElement = Node[index]
-      if type(NodeElement) == "string" then
-        insert(content, NodeElement)
-      elseif type(NodeElement) == "table" then
-        local tag = NodeElement.tag
-        local href = ""
-        local src = ""
-        if NodeElement.attrs then
-          if NodeElement.attrs.href then
-            href = format(" href=%q", NodeElement.attrs.href)
+    if self:type(Node) == "Node" then
+      for index = 1, #Node do
+        local NodeElement = Node[index]
+        if type(NodeElement) == "string" then
+          insert(content, NodeElement)
+        elseif self:type(NodeElement) == "NodeElement" then
+          local tag = NodeElement.tag
+          local href = ""
+          local src = ""
+          if NodeElement.attrs then
+            if NodeElement.attrs.href then
+              href = format(" href=%q", NodeElement.attrs.href)
+            end
+            if NodeElement.attrs.src then
+              src = format(" src=%q", NodeElement.attrs.src)
+            end
           end
-          if NodeElement.attrs.src then
-            src = format(" src=%q", NodeElement.attrs.src)
+          local children = ""
+          if NodeElement.children then
+            children = node(NodeElement.children)
           end
+          insert(content, format("<%s%s%s>%s</%s>", tag, href, src, children, tag))
         end
-        local children = ""
-        if NodeElement.children then
-          children = node(NodeElement.children)
-        end
-        insert(content, format("<%s%s%s>%s</%s>", tag, href, src, children, tag))
       end
     end
     return concat(content)
   end
   return sanitizer({whitelist = whitelist, strip_comments = true})(node(Node))
+end
+
+function telegraph:type(object)
+  if type(object) ~= "table" then
+    return "unknown"
+  end
+  local mt = getmetatable(object)
+  if not mt then
+    return "unknown"
+  end
+  return mt.type or "unknown"
 end
 
 function telegraph:_request(method, path, access_token_required, params)
