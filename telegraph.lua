@@ -1,5 +1,6 @@
-local format, lower, gsub = string.format, string.lower, string.gsub
-local insert, concat = table.insert, table.concat
+local remove, insert, concat = table.remove, table.insert, table.concat
+local format, lower = string.format, string.lower
+local unpack = table.unpack or unpack
 local ceil = math.ceil
 local _fail = fail -- luacheck: ignore
 
@@ -19,9 +20,6 @@ whitelist.tags = {a = {href = whitelist.tags.a.href}, aside = true, b = true, bl
 whitelist.self_closing = {br = true, hr = true, img = true}
 whitelist.add_attributes = {}
 
-local telegraph = {}
-telegraph.__index = telegraph
-
 local API = "https://api.telegra.ph/%s%s"
 
 local function assert_path(method, path, position)
@@ -37,16 +35,37 @@ local function assert_data(method, data, position)
   assert(type(data) == "table", format("bad argument #%i to '%s' (table expected, got %s)", position or 1, method, type(data)))
 end
 
-setmetatable(telegraph, {
-  __call = function(self, ...)
-    return self.new(...)
+local telegraph = {}
+telegraph.__index = telegraph
+
+-- STATIC METHODS
+
+telegraph.safe = function()
+  for key, value in pairs(telegraph) do
+    if type(value) == "function" then
+      telegraph[key] = function(...)
+        local result = {pcall(value, ...)}
+        if remove(result, 1) then
+          return unpack(result)
+        else
+          return _fail, unpack(result)
+        end
+      end
+    end
   end
-})
+  return telegraph
+end
 
 function telegraph.new()
   local self = setmetatable({}, telegraph)
   return self
 end
+
+setmetatable(telegraph, {
+  __call = function(self, ...)
+    return self.new(...)
+  end
+})
 
 -- METHODS
 
@@ -266,21 +285,18 @@ function telegraph:toContent(Node)
           insert(content, NodeElement)
         elseif self:type(NodeElement) == "NodeElement" then
           local tag = NodeElement.tag
-          local href = ""
-          local src = ""
+          local attrs = NodeElement.attrs
+          local params = {}
           if NodeElement.attrs then
-            if NodeElement.attrs.href then
-              href = format(" href=%q", NodeElement.attrs.href)
-            end
-            if NodeElement.attrs.src then
-              src = format(" src=%q", NodeElement.attrs.src)
+            for _, key in ipairs(attrs) do
+              insert(params, format("%s=%q", key, attrs[key]))
             end
           end
           local children = ""
           if NodeElement.children then
             children = node(NodeElement.children)
           end
-          insert(content, format("<%s%s%s>%s</%s>", tag, href, src, children, tag))
+          insert(content, format("<%s%s%s>%s</%s>", tag, concat(params, " "), children, tag))
         end
       end
     end
