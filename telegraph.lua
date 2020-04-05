@@ -56,8 +56,9 @@ telegraph.safe = function()
   return telegraph
 end
 
-function telegraph.new()
+function telegraph.new(access_token)
   local self = setmetatable({}, telegraph)
+  self.access_token = access_token
   return self
 end
 
