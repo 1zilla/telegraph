@@ -245,7 +245,7 @@ function telegraph:toNode(content, strip_tags)
         if node.type == "text_node" then
           insert(current, node:inner_text())
         else
-          current[num] = {tag = node.tag, attr = node.attr}
+          current[num] = {tag = node.tag, attrs = node.attr}
           current = current[num]
         end
       end
@@ -267,7 +267,14 @@ function telegraph:toNode(content, strip_tags)
         end
         insert(nodes, concat(text))
       elseif type(value) == "table" then
-        insert(nodes, {tag = lower(value.tag), attrs = value.attr and {href = value.attr.href, src = value.attr.src}, children = children(value)})
+        local attrs = value.attrs
+        local params = {}
+        if attrs then
+          for _, key in ipairs(attrs) do
+            insert(params, format(" %s=%q", key, attrs[key]))
+          end
+        end
+        insert(nodes, {tag = lower(value.tag), attrs = concat(params), children = children(value)})
       end
     end
     return #nodes == 0 and nil or nodes
@@ -289,8 +296,8 @@ function telegraph:toContent(Node)
           local attrs = NodeElement.attrs
           local params = {}
           if attrs then
-            for _, key in ipairs(attrs) do
-              insert(params, format(" %s=%q", key, attrs[key]))
+            for key, value in pairs(attrs) do
+              insert(params, format(" %s=%q", key, value))
             end
           end
           local children = NodeElement.children and node(NodeElement.children)
