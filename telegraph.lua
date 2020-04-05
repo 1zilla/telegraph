@@ -267,14 +267,7 @@ function telegraph:toNode(content, strip_tags)
         end
         insert(nodes, concat(text))
       elseif type(value) == "table" then
-        local attrs = value.attrs
-        local params = {}
-        if attrs then
-          for _, key in ipairs(attrs) do
-            insert(params, format(" %s=%q", key, attrs[key]))
-          end
-        end
-        insert(nodes, {tag = lower(value.tag), attrs = concat(params), children = children(value)})
+        insert(nodes, {tag = lower(value.tag), attrs = value.attrs, children = children(value)})
       end
     end
     return #nodes == 0 and nil or nodes
