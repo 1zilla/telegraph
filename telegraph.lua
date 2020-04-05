@@ -288,16 +288,13 @@ function telegraph:toContent(Node)
           local tag = NodeElement.tag
           local attrs = NodeElement.attrs
           local params = {}
-          if NodeElement.attrs then
+          if attrs then
             for _, key in ipairs(attrs) do
               insert(params, format(" %s=%q", key, attrs[key]))
             end
           end
-          local children = ""
-          if NodeElement.children then
-            children = node(NodeElement.children)
-          end
-          insert(content, format("<%s%s%s>%s</%s>", tag, concat(params), children, tag))
+          local children = NodeElement.children and node(NodeElement.children)
+          insert(content, format("<%s%s%s>%s</%s>", tag, concat(params), children or "", tag))
         end
       end
     end
