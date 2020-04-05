@@ -152,7 +152,7 @@ function telegraph:getPageList(params, get_all)
       local Pages
       for current = 1, total do 
         local offset = (current * limit) - limit
-        local PageList = self:PageList(self:getPageList({offset = offset, limit = limit}))
+        local PageList = self:PageList(self:getPageList({offset = offset, limit = limit}, false))
         if Pages then
           for page = 1, #PageList.pages do 
             insert(Pages, PageList.pages[page])
