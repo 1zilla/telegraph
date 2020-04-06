@@ -301,7 +301,7 @@ function telegraph:toContent(Node)
             end
           end
           local children = NodeElement.children and node(NodeElement.children)
-          insert(content, format("<%s%s%s>%s</%s>", tag, concat(params), children or "", tag))
+          insert(content, format("<%s%s>%s</%s>", tag, concat(params), children or "", tag))
         end
       end
     end
