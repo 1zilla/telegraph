@@ -218,7 +218,7 @@ function telegraph:Node(data)
       data[index] = self:NodeElement(data[index])
     end
   end
-  return setmetatable(data, {type = "Node"})
+  return setmetatable(data, {type = "Node", __tostring = function(node) return telegraph:toContent(node) end})
 end
 
 -- https://telegra.ph/api#NodeElement
