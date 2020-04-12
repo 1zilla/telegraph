@@ -312,13 +312,13 @@ end
 
 function telegraph:type(object)
   if type(object) ~= "table" then
-    return "unknown"
+    return false
   end
   local mt = getmetatable(object)
   if not mt then
-    return "unknown"
+    return false
   end
-  return mt.type or "unknown"
+  return mt.type or false
 end
 
 function telegraph:_request(method, path, access_token_required, params)
