@@ -14,6 +14,12 @@ local from_json = util.from_json
 local whitelist = require("web_sanitize.whitelist"):clone()
 local scanner = require("web_sanitize.query.scan_html")
 local sanitizer = require("web_sanitize.html").Sanitizer
+local raw_text_tags = require("web_sanitize.data").raw_text_tags
+local escape_html_text = require("web_sanitize.patterns").escape_html_text
+
+for index = 1, #raw_text_tags do
+  raw_text_tags[raw_text_tags[index]] = true
+end
 
 -- https://telegra.ph/api#NodeElement
 whitelist.tags = {a = {href = whitelist.tags.a.href}, aside = true, b = true, blockquote = true, br = true, code = true, em = true, figcaption = true, figure = true, h3 = true, h4 = true, hr = true, i = true, iframe = {src = whitelist.tags.img.src}, img = {src = whitelist.tags.img.src}, li = true, ol = true, p = true, pre = true, s = true, strong = true, u = true, ul = true, video = {src = whitelist.tags.img.src}}
@@ -229,10 +235,13 @@ function telegraph:toNode(content, strip_tags)
         current = current[num]
       else
         if node.type == "text_node" then
-          insert(current, node:inner_text())
+          insert(current, escape_html_text:match(node:inner_text()))
         else
           current[num] = {tag = node.tag, attrs = node.attr}
           current = current[num]
+          if raw_text_tags[tag] then
+            insert(current, node:inner_text())
+          end 
         end
       end
     end
