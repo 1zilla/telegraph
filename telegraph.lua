@@ -38,23 +38,9 @@ end
 local telegraph = {}
 telegraph.__index = telegraph
 
--- STATIC METHODS
+telegraph.request = request
 
-telegraph.safe = function()
-  for key, value in pairs(telegraph) do
-    if type(value) == "function" then
-      telegraph[key] = function(...)
-        local result = {pcall(value, ...)}
-        if remove(result, 1) then
-          return unpack(result)
-        else
-          return _fail, unpack(result)
-        end
-      end
-    end
-  end
-  return telegraph
-end
+-- STATIC METHODS
 
 function telegraph.new(access_token)
   local self = setmetatable({}, telegraph)
@@ -339,7 +325,7 @@ function telegraph:_request(method, path, access_token_required, params)
     end
   end
   local url = format(API, method, path and "/" .. path or "")
-  local response, status = request(url, encode_query_string(params))
+  local response, status = telegraph.request(url, encode_query_string(params))
   if not response then
     return _fail, tostring(status)
   end
