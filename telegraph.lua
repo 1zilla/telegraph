@@ -1,6 +1,5 @@
-local remove, insert, concat = table.remove, table.insert, table.concat
+local insert, concat = table.insert, table.concat
 local format, lower = string.format, string.lower
-local unpack = table.unpack or unpack
 local ceil = math.ceil
 local _fail = fail -- luacheck: ignore
 
@@ -239,7 +238,7 @@ function telegraph:toNode(content, strip_tags)
         else
           current[num] = {tag = node.tag, attrs = node.attr}
           current = current[num]
-          if raw_text_tags[tag] then
+          if raw_text_tags[node.tag] then
             insert(current, node:inner_text())
           end 
         end
